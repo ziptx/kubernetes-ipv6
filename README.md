@@ -1,15 +1,37 @@
-# Kubernetes with IPv6 only (on Ubuntu)
+# Kubernetes with IPv6 only (on AlmaLinux 9 / EL 9) (Aug 2024) 
 
 Configure a kubernetes cluster with IPv6 only.
 
 IPv6 only infrastructure deployments allow for simpler management and maintenance than dual-stack, with IPv4 access provided via a front end reverse proxy or content distribution network (CDN).
 
-## Install Kubernetes with IPv6 only on Ubuntu 20.04
+Notes:
+- The setup below uses a random IPv6 ULA (private) address space.   The 2001:db8 'documention' addresses are not used, so that this working enviroment can be mimicked.  This tutorial is derived from the well written guide by sgryphon which has quickly aged with the many evolving changes in Kubernetes AND Calico code bases.  Calico now recommends Operators vs Manifests.   
+- This setup assumes you have native IPv6 access to the internet.   Each node will need a secondary IP address or an additional NIC with an IPv6 address and DNS from your carrier.  If not, you will need to have DNS64 + NAT64 available to your IPv6 only server, as the installation uses several resources (Docker registry, Github).
+
+
+## Environment Review - On-premise config
+- Hypervisor - Proxmox with vLAN (26) for Lab VMs  (any hypervisor or (4) physical\virtual machines can meet this requirement)
+- (4) Virtual Machines - Installed with AlmaLinux 9 Minminal ISO [^iso]
+- Kubernetes setup is (1) controller node and (3) worker nodes
+  -  k8s-master01 [fdaa:bbcc:dd01:2600::230] /64 
+  -  k8s-worker01 [fdaa:bbcc:dd01:2600::231] /64
+  -  k8s-worker02 [fdaa:bbcc:dd01:2600::232] /64
+  -  k8s-worker03 [fdaa:bbcc:dd01:2600::233] /64
+- The 'node' address space is  [fdaa:bbcc:dd01:2600::] /64
+- The 'service' address space is [fdaa:bbcc:dd01:260a::] /64
+- The 'pod' address space is [fdaa:bbcc:dd01:260b::] /64
+
+NOTE:  All addresses are part of the fdaa:bb:cc:dd01:26xx /56 subnet (xx are hex numbers defined by you).
+
+[^iso]: https://repo.almalinux.org/almalinux/9.4/isos/x86_64/AlmaLinux-9.4-x86_64-minimal.iso
+
+## Install Kubernetes with IPv6 only on AlmaLinux 9.
 
 NOTE: You need to have DNS64 + NAT64 available to your IPv6 only server, as the installation uses several resources (Docker registry, Github) that are still IPv4 only.
 
 There are several main steps required:
 
+1. Set up the OS
 1. Set up a container runtime
 1. Install Kubernetes components
 1. Set up the Kubernetes control plane
@@ -17,6 +39,15 @@ There are several main steps required:
 1. Configure routing
 1. Add management components
 
+## Set up the OS for Kubernetes
+
+1. Install OS [^1]
+
+[^1]: https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/
+
+
+====  ^^ current ^^ ====
+====  vv still needs updated vv ====
 
 ## Set up a container runtime (Docker CE)
 
@@ -80,7 +111,7 @@ sudo systemctl restart docker
 
 # Set docker to start on boot
 sudo systemctl enable docker
-```
+
 
 
 ## Installing kubeadm, kubelet and kubectl

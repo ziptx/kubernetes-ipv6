@@ -10,7 +10,8 @@ Notes:
 
 
 ## Environment Review - On-premise config
-- Hypervisor - Proxmox with vLAN (26) for Lab VMs  (any hypervisor or (4) physical\virtual machines can meet this requirement)
+- Hypervisor - Proxmox with vLAN (26) for Virtual Machines (VMs)
+  - Any hypervisor or (4) physical\virtual machines can meet this requirement 
 - (4) Virtual Machines - Installed with AlmaLinux 9 Minminal ISO [^iso]
 - Kubernetes setup is (1) controller node and (3) worker nodes
   -  k8s-master01 [fdaa:bbcc:dd01:2600::230] /64 
@@ -25,11 +26,7 @@ NOTE:  All addresses are part of the fdaa:bb:cc:dd01:26xx /56 subnet (xx are hex
 
 [^iso]: https://repo.almalinux.org/almalinux/9.4/isos/x86_64/AlmaLinux-9.4-x86_64-minimal.iso
 
-## Install Kubernetes with IPv6 only on AlmaLinux 9.
-
-NOTE: You need to have DNS64 + NAT64 available to your IPv6 only server, as the installation uses several resources (Docker registry, Github) that are still IPv4 only.
-
-There are several main steps required:
+## Main Steps for install
 
 1. Set up the OS
 1. Set up a container runtime
@@ -39,7 +36,7 @@ There are several main steps required:
 1. Configure routing
 1. Add management components
 
-## Set up the OS for Kubernetes
+## Set up the OS
 
 1. Install OS [^1]
 

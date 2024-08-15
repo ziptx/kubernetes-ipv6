@@ -1,4 +1,5 @@
-# Kubernetes with IPv6 only (on AlmaLinux 9 / EL 9) (Aug 2024) 
+# Kubernetes with IPv6 only (on AlmaLinux 9 / EL 9) 
+> Environment build as of Aug 2024 
 
 Configure a kubernetes cluster with IPv6 only.
 
@@ -15,15 +16,15 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 - (4) Virtual Machines - Installed with AlmaLinux 9 Minminal ISO [^iso]
 - Kubernetes setup is (1) controller node and (3) worker nodes
   -  k8s-master01 [`fdaa:bbcc:dd01:2600::230`] /64 
-  -  k8s-worker01 [fdaa:bbcc:dd01:2600::231] /64
-  -  k8s-worker02 [fdaa:bbcc:dd01:2600::232] /64
-  -  k8s-worker03 [fdaa:bbcc:dd01:2600::233] /64
-- The 'node' address space is  [fdaa:bbcc:dd01:2600::] /64
-- The 'service' address space is [fdaa:bbcc:dd01:260a::] /64
-- The 'pod' address space is [fdaa:bbcc:dd01:260b::] /64
+  -  k8s-worker01 [`fdaa:bbcc:dd01:2600::231`] /64
+  -  k8s-worker02 [`fdaa:bbcc:dd01:2600::232`] /64
+  -  k8s-worker03 [`fdaa:bbcc:dd01:2600::233`] /64
+- The 'node' address space is  [`fdaa:bbcc:dd01:2600::`] /64
+- The 'service' address space is [`fdaa:bbcc:dd01:260a::`] /64
+- The 'pod' address space is [`fdaa:bbcc:dd01:260b::`] /64
 
 > [!TIP]
-> All addresses are part of the fdaa:bb:cc:dd01:26xx /56 subnet (xx are hex numbers defined by you).
+> All addresses are part of the `fdaa:bb:cc:dd01:26xx /56` subnet (xx are hex numbers defined by you).
 
 [^iso]: https://repo.almalinux.org/almalinux/9.4/isos/x86_64/AlmaLinux-9.4-x86_64-minimal.iso
 
@@ -40,6 +41,8 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 ## Set up the OS
 
 1. Install OS [^1]
+2. 
+3. 
 
 [^1]: https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/
 
@@ -147,15 +150,16 @@ sudo apt-mark hold kubelet kubeadm kubectl
 
 We need to use a `kubeadm init` configuration file for IPv6, as per the notes at https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file
 
-You can get a copy of the default configuration, however a lot of the options can be deleted from the file as the default is fine. However we do need to configure the options needed for IPv6 for each component in the Kubernetes stack. Details for this taken from the excellent talk by André Martins, https://www.youtube.com/watch?v=q0J722PCgvY
-
-| Component | Details | IPv6 Options with example |
-| --------- | ------- | ------------------------- |
-| etcd | 53 CLI options, <br> 5 relevant for IPv6 | --advertise-client-urls https://[fd00::0b]:2379 <br> --initial-advertise-peer-urls https://[fd00::0b]:2380 <br> --initial-cluster master=https://[fd00::0b]:2380 <br> --listen-client-urls https://[fd00::0b]:2379 <br> --listen-peer-urls https://[fd00::0b]:2380 <br> |
-| kube-apiserver | 120 CLI options, <br> 5 relevant for IPv6 | --advertise-address=fd00::0b <br> --bind-address '::' <br> --etcd-servers=https://[fd00::0b]:2379 <br> --service-cluster-ip-range=fd03::/112 <br> --insecure-bind-address <br> |
-| kube-scheduler | 32 CLI options, <br> 3 relevant for IPv6 | --bind-address '::' <br> --kubeconfig <br> --master <br> |
-| kube-controller-manager | 87 CLI options, <br> 5 relevant for IPv6 | --allocate-node-cidrs=true <br> --bind-address '::' <br> --cluster-cidr=fd02::/80 <br> --node-cidr-mask-size 96 <br> --service-cluster-ip-range=fd03::/112 <br> |
-| kubelet | 160 options, <br> 3 relevant for IPv6 | --bind-address '::' <br> --cluster-dns=fd03::a <br> --node-ip=fd00:0b <br> |
+> [!TIP]
+> You can get a copy of the default configuration, however a lot of the options can be deleted from the file as the default is fine. However we do need to configure the options needed for IPv6 for each component in the Kubernetes stack. Details for this taken from the excellent talk by André Martins, https://www.youtube.com/watch?v=q0J722PCgvY
+>
+> | Component | Details | IPv6 Options with example |
+> | --------- | ------- | ------------------------- |
+> | etcd | 53 CLI options, <br> 5 relevant for IPv6 | --advertise-client-urls https://[fd00::0b]:2379 <br> --initial-advertise-peer-urls https://[fd00::0b]:2380 <br> --initial-cluster master=https://[fd00::0b]:2380 <br> --listen-client-urls https://[fd00::0b]:2379 <br> --listen-peer-urls https://[fd00::0b]:2380 <br> |
+> | kube-apiserver | 120 CLI options, <br> 5 relevant for IPv6 | --advertise-address=fd00::0b <br> --bind-address '::' <br> --etcd-servers=https://[fd00::0b]:2379 <br> --service-cluster-ip-range=fd03::/112 <br> --insecure-bind-address <br> |
+> | kube-scheduler | 32 CLI options, <br> 3 relevant for IPv6 | --bind-address '::' <br> --kubeconfig <br> --master <br> |
+> | kube-controller-manager | 87 CLI options, <br> 5 relevant for IPv6 | --allocate-node-cidrs=true <br> --bind-address '::' <br> --cluster-cidr=fd02::/80 <br> --node-cidr-mask-size 96 <br> --service-cluster-ip-range=fd03::/112 <br> |
+> | kubelet | 160 options, <br> 3 relevant for IPv6 | --bind-address '::' <br> --cluster-dns=fd03::a <br> --node-ip=fd00:0b <br> |
 
 To set the options you need to use the address of your server and plan the ranges you will use for Services and Pods, and how they will be allocated to Nodes.
 

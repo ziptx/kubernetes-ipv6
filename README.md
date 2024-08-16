@@ -105,7 +105,7 @@ EOF
 
 Kernel Modules needed for containerd.io
 ```bash
-tee /etc/modules-load.d/containerd.conf <<EOF
+cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf 
 overlay
 br_netfilter
 EOF
@@ -205,6 +205,12 @@ sudo systemctl enable --now kubelet
 > [!IMPORTANT]
 > This is a great time to snapshot each node for rollback
 
+###  Instantiate Kubernetes Control Node
+On MASTER node create yaml file in home directory </br>
+
+https://github.com/ziptx/kubernetes-ipv6/blob/main/k8s-basic.yaml#L1-L40
+
+### Next
 ====  ^^ current ^^ ====
 ====  vv still needs updated vv ====
 

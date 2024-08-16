@@ -5,8 +5,9 @@ Configure a kubernetes cluster with IPv6 only.
 
 IPv6 only infrastructure deployments allow for simpler management and maintenance than dual-stack, with IPv4 access provided via a front end reverse proxy or content distribution network (CDN).
 
-> [!NOTE]
-> - The setup below uses a random IPv6 ULA (private) address space.   The 2001:db8 'documention' addresses are not used, so that this working enviroment can be mimicked.  This tutorial is derived from the awesome guide by [sgryphon](https://github.com/sgryphon/kubernetes-ipv6) which has aged with the many evolving changes in Kubernetes AND Calico code bases.     
+> [!TIP]
+> - The setup below uses a random IPv6 ULA (private) address space.   The 2001:db8 'documention' addresses are not used, so that this working enviroment can be mimicked.  This tutorial is derived from the awesome guide by [sgryphon](https://github.com/sgryphon/kubernetes-ipv6) which has aged with the many evolving changes in Kubernetes AND Calico code bases.
+>        
 > - This setup assumes you have native IPv6 access to the internet.   Each node will need a secondary GUA IP address / an additional NIC with an IPv6 address and DNS from your carrier / or a NAT66 translation to a GUA address.  If not, you will need to have DNS64 + NAT64 available to your IPv6 only server, as the installation uses several resources (Docker registry, Github).
 
 
@@ -179,11 +180,11 @@ kubectl verison
 > References:
 > https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
 
-> [!IMPORTANT]
+> [!NOTE]
 > ### CLONE the Template VM
 > This is the time to CLONE THE TEMPLATE / snapshot / and individualize
 
-### Individualize EACH node
+## Individualize EACH node
 
 If cloned from template:  Update each node with correct Node IP address as listed above
 
@@ -207,7 +208,7 @@ Start the kublet on each node
 ```bash
 sudo systemctl enable --now kubelet
 ```
-> [!IMPORTANT]
+> [!NOTE]
 > ### SNAPSHOT ALL VMs
 > This is a great time to snapshot each node for rollback
 
@@ -279,7 +280,7 @@ sudo kubeadm init --config=k8s-basic.yaml -v=5
 "Your Kubernetes control-plane has initialized successfully!"
 ```
 
-> ![WARNING]
+> [!IMPORTANT]
 >  Take note of the token to use for joining worker nodes.   You need to follow the instructions to get kubectl to work as a non-root user, either creating the `.kube/config` file or exporting `admin.conf`.
 
 ```bash
@@ -289,7 +290,7 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 ```
 
-At this point you can checking the status. The etcd, apiserver, controller manager, and scheduler should be running, although CoreDNS requires a networking add on before it will start, as mentioned in the init output.
+At this point you can start checking the status. The etcd, apiserver, controller manager, and scheduler should be running, although CoreDNS requires a networking add on before it will start, as mentioned in the init output.
 
 ```bash
 kubectl get all --all-namespaces
@@ -311,9 +312,7 @@ sudo kubeadm join [fdaa:bbcc:dd01:2600::230]:6443 --token te7lbk.xxxxxxxxxxxxxxx
 Attach ALL worker nodes
 
 ## Deploy a Container Network Interface (CNI)
-The `kubeadm init` output instructs that you must also deploy a pod network, a Container Network Interface (CNI), to get things working, and the output of init provides a link to a list. https://kubernetes.io/docs/concepts/cluster-administration/addons/
-
-Base Kubernetes is tested with Calico, and it also supports IPv6, with instructions for the needed setup changes. [https://docs.projectcalico.org/networking/ipv6](https://docs.tigera.io/calico/latest/networking/ipam/ipv6#enable-ipv6-only)
+The `kubeadm init` output instructs that you must also deploy a pod network, a Container Network Interface (CNI), to get things working. Base Kubernetes is tested with Calico, and supports IPv6.
 
 On the CONTROL node prep the cluster with Calico custom resource definitions
 > At time of writing, the Calico version is 3.28.1.  Please adjust as needed, but PLEASE NOTE there are breaking changes between versions and compatability requirements with Calico.
@@ -323,6 +322,7 @@ kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.1
 
 > References
 > https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart
+> https://docs.tigera.io/calico/latest/networking/ipam/ipv6#enable-ipv6-only
 
 ### OPTION: Calico with VXLAN
 This EASY network option allows you to quickly get connectivity of `pods` between `nodes`.   This does NOT provide network access directly to the pods or services.   This mimics the isolated 'internal' network of a Docker instance.   With a Cloud provider, they provide a `LoadBalancer` into this network.   A future write-up may address this.  If you want external access to the pod network, use the [OPTION: Calico with BGP](OPTION:-Calico-with-bgp) below.
@@ -355,17 +355,57 @@ Skip to [Install calicoctl](install-calicoctl) to continue
 
 To be added
 
-[Install calicoctl]
+### Install calicoctl
+`calicoctl` is a CLI tool that is largely meant to be run on a user's client machine and shouldn't need to be deployed to the cluster itself, and the operator is responsible for installing Calico components that run on the cluster.  `calicoctl` is being depricated but is required to manage Calico BGP installs.  The following assumes administrations is being done on the CONTROL node, and is installed there. 
 
-After this you can check everything is running. If successful, then there should be some calico pods, and the coredns pods should now be running.
+> [!TIP]
+> Consider navigating to a location that's in your PATH for install. For example, /usr/local/bin/.
+
+> [!TIP]
+> Much documentation will refer to using `calicoctl`, but the plugin can also be used as `kubectl calico`.  ie `kube calico -h`  In order to use `calicoctl` apply the following to your `~/.bash_aliases` file
+> ```bash
+> # Save an alias in bash config, and then load it
+> cat <<EOF | tee -a ~/.bash_aliases
+> alias calicoctl="kubectl exec -i -n kube-system calicoctl -- /calicoctl"
+> EOF
+> . ~/.bash_aliases
+>
+> calicoctl get profiles -o wide
+> ```
+
+
+#### Install calicoctl as a binary on a single host
+https://docs.tigera.io/calico/latest/operations/calicoctl/install#install-calicoctl-as-a-binary-on-a-single-host
 
 ```bash
-kubectl get all --all-namespaces
+cd /usr/local/bin
+sudo curl -L https://github.com/projectcalico/calico/releases/download/v3.28.1/calicoctl-linux-amd64 -o kubectl-calico
+sudo chmod +x ./calicoctl
 ```
 
 
+#### Install calicoctl as a Pod (problematic if cluster not healthy and deprecated):
+```bash
+kubectl apply -f https://docs.projectcalico.org/manifests/calicoctl.yaml
+
+# Save an alias in bash config, and then load it
+cat <<EOF | tee -a ~/.bash_aliases
+alias calicoctl="kubectl exec -i -n kube-system calicoctl -- /calicoctl"
+EOF
+. ~/.bash_aliases
+
+calicoctl get profiles -o wide
+```
+
+https://docs.tigera.io/calico/latest/operations/calicoctl/install#install-calicoctl-as-a-binary-on-a-single-host
 
 
+# Choose your connectivity testing
+### Connectivity Test A
+
+### Connectivity Test B
+
+### Connectivity Test C
 
 
 ### Next

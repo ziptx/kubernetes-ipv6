@@ -213,7 +213,7 @@ sudo systemctl enable --now kubelet
 > This is a great time to snapshot each node for rollback
 
 
-## Set up the Kubernetes control plane
+# Set up the Kubernetes control plane
 
 > [!TIP]
 > You can get a copy of the default configuration, however a lot of the options can be deleted from the file as the default is fine. However we do need to configure the options needed for IPv6 for each component in the Kubernetes stack. Details for this taken from the excellent talk by André Martins, https://www.youtube.com/watch?v=q0J722PCgvY
@@ -297,6 +297,7 @@ kubectl get all --all-namespaces
 ```
 
 ### Initialize ALL the cluster worker nodes
+:koala: Perform on ALL worker nodes </br>
 Make sure kubelet is running
 ```bash
 sudo systemctl enable --now kubelet
@@ -309,9 +310,7 @@ sudo kubeadm join [fdaa:bbcc:dd01:2600::230]:6443 --token te7lbk.xxxxxxxxxxxxxxx
         --discovery-token-ca-cert-hash sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-Attach ALL worker nodes
-
-## Deploy a Container Network Interface (CNI)
+# Deploy a Container Network Interface (CNI)
 The `kubeadm init` output instructs that you must also deploy a pod network, a Container Network Interface (CNI), to get things working. Base Kubernetes is tested with Calico, and supports IPv6.
 
 On the CONTROL node prep the cluster with Calico custom resource definitions
@@ -362,25 +361,19 @@ To be added
 > Consider navigating to a location that's in your PATH for install. For example, /usr/local/bin/.
 
 > [!TIP]
-> Much documentation will refer to using `calicoctl`, but the plugin can also be used as `kubectl calico`.  ie `kube calico -h`  In order to use `calicoctl` apply the following to your `~/.bash_aliases` file
-> ```bash
-> # Save an alias in bash config, and then load it
-> cat <<EOF | tee -a ~/.bash_aliases
-> alias calicoctl="kubectl exec -i -n kube-system calicoctl -- /calicoctl"
-> EOF
-> . ~/.bash_aliases
->
-> calicoctl get profiles -o wide
-> ```
-
+> Much documentation will refer to using `calicoctl`, but the plugin can also be used as `kubectl calico`.  ie `kube calico -h`  The single host instructions below setup both commands to work.
 
 #### Install calicoctl as a binary on a single host
 https://docs.tigera.io/calico/latest/operations/calicoctl/install#install-calicoctl-as-a-binary-on-a-single-host
-
+> At time of writing, the Calico version is 3.28.1.  Please adjust as needed, but PLEASE NOTE there are breaking changes between versions and compatability requirements with Calico.
 ```bash
 cd /usr/local/bin
 sudo curl -L https://github.com/projectcalico/calico/releases/download/v3.28.1/calicoctl-linux-amd64 -o kubectl-calico
-sudo chmod +x ./calicoctl
+sudo chmod +x kubectl-calico
+cat <<EOF | sudo tee /usr/local/bin/calicoctl
+/usr/local/bin/kubectl-calico "\$@"
+EOF
+sudo chmod +x calicoctl
 ```
 
 
@@ -397,8 +390,6 @@ EOF
 calicoctl get profiles -o wide
 ```
 
-https://docs.tigera.io/calico/latest/operations/calicoctl/install#install-calicoctl-as-a-binary-on-a-single-host
-
 
 # Choose your connectivity testing
 ### Connectivity Test A
@@ -406,6 +397,12 @@ https://docs.tigera.io/calico/latest/operations/calicoctl/install#install-calico
 ### Connectivity Test B
 
 ### Connectivity Test C
+
+
+
+# Using Kubernetes
+https://kubernetes.io/docs/reference/kubectl/quick-reference/
+
 
 
 ### Next

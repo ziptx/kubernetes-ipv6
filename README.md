@@ -208,7 +208,7 @@ sudo systemctl enable --now kubelet
 ###  Instantiate Kubernetes Control Node
 On MASTER node create yaml file in home directory </br>
 
-https://github.com/ziptx/kubernetes-ipv6/blob/main/k8s-basic.yaml#L1-L40
+https://github.com/ziptx/kubernetes-ipv6/blob/f4d2215a4f32080c940dd79008cc108278c0cb0e/k8s-basic.yaml#L1-L40
 
 ### Next
 ====  ^^ current ^^ ====

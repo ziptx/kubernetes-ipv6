@@ -6,8 +6,8 @@ Configure a kubernetes cluster with IPv6 only.
 IPv6 only infrastructure deployments allow for simpler management and maintenance than dual-stack, with IPv4 access provided via a front end reverse proxy or content distribution network (CDN).
 
 > [!NOTE]
-> - The setup below uses a random IPv6 ULA (private) address space.   The 2001:db8 'documention' addresses are not used, so that this working enviroment can be mimicked.  This tutorial is derived from the awesome guide by [sgryphon](https://github.com/sgryphon/kubernetes-ipv6) which has quickly aged with the many evolving changes in Kubernetes AND Calico code bases.  Calico now recommends Operators vs Manifests.   
-> - This setup assumes you have native IPv6 access to the internet.   Each node will need a secondary IP address or an additional NIC with an IPv6 address and DNS from your carrier.  If not, you will need to have DNS64 + NAT64 available to your IPv6 only server, as the installation uses several resources (Docker registry, Github).
+> - The setup below uses a random IPv6 ULA (private) address space.   The 2001:db8 'documention' addresses are not used, so that this working enviroment can be mimicked.  This tutorial is derived from the awesome guide by [sgryphon](https://github.com/sgryphon/kubernetes-ipv6) which has aged with the many evolving changes in Kubernetes AND Calico code bases.     
+> - This setup assumes you have native IPv6 access to the internet.   Each node will need a secondary GUA IP address / an additional NIC with an IPv6 address and DNS from your carrier / or a NAT66 translation to a GUA address.  If not, you will need to have DNS64 + NAT64 available to your IPv6 only server, as the installation uses several resources (Docker registry, Github).
 
 
 ## Environment Review - On-premise config
@@ -31,8 +31,8 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 ## Step Overview 
 
 1. [Install the OS :four_leaf_clover:](#install-the-os)
-1. [Set up OS for k8s :four_leaf_clover:](set-up-os-for-k8s)
-1. Set up a container runtime
+1. [Set up OS for k8s :four_leaf_clover:](#set-up-os-for-k8s)
+1. [Install container runtime :four_leaf_clover:](#install-container-runtime)
 1. Install Kubernetes components
 1. Set up the Kubernetes control plane
 > IF VIRTUALIZED - Clone "base template" into (4) VMs
@@ -85,7 +85,7 @@ echo WORKER NODE rules
 sudo firewall-cmd --permanent --add-port={10250,30000-32767}/tcp
 sudo firewall-cmd --reload
 echo CALICO rules all nodes
-sudo firewall-cmd --permanent --add-port={5473}/tcp
+sudo firewall-cmd --permanent --add-port=5473/tcp
 sudo firewall-cmd --reload
 echo VXLAN rules all nodes
 sudo firewall-cmd --permanent --add-port=4789/udp
@@ -94,13 +94,95 @@ echo BGP rules all nodes
 sudo firewall-cmd --permanent --add-port=179/tcp
 sudo firewall-cmd --reload
 ```
+
+Prevent NetworkManager from managing Calico interfaces
+```bash
+cat <<EOF | sudo tee /etc/NetworkManager/conf.d/calico.conf
+[keyfile]
+unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vx
+EOF
+```
+
+Kernel Modules needed for containerd.io
+```bash
+tee /etc/modules-load.d/containerd.conf <<EOF
+overlay
+br_netfilter
+EOF
+```
+
+Allow node to route
+```bash
+cat <<EOF | sudo tee  /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv6.conf.all.forwarding        = 1
+EOF
+```
 > References: </br>
 > https://www.tigera.io/learn/guides/kubernetes-security/kubernetes-firewall/ </br>
 > https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements </br>
 > [https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/](https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/)
 
-## Individualize EACH node
+## Install Container Runtime
 
+Setup Docker repo
+```bash
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+```
+
+Install containerd
+```bash
+sudo dnf install containerd.io -y
+```
+
+Configure systemdcgroup
+```bash
+containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+sudo sed -i 's/SystemdCgroup \= false/SystemdCgroup \= true/g' /etc/containerd/config.toml
+```
+
+Start, enable, check containerd service
+```bash
+sudo systemctl enable --now containerd
+sudo systemctl status containerd
+```
+
+## Install Kubernetes Tools
+> [!TIP]
+> At time of writing, the Kuberenetes version is 1.30.  Please adjust as needed, but PLEASE NOTE there are breaking changes between versions and compatability requirements with Calico.
+
+Setup Kubernetes repo
+```bash
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/repodata/repomd.xml.key
+exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni
+EOF
+```
+
+Install the needed packages
+```bash
+sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+```
+Do NOT start kublet until cloned. :koala:
+
+Verify kubectl is installed
+```bash
+kubectl verison
+```
+
+> [!IMPORTANT]
+> ### CLONE the Template VM
+> This is the time to CLONE THE TEMPLATE / snapshot / and individualize
+
+### Individualize EACH node
+Run each line on a different node that the command matches
 ```bash
 sudo hostnamectl set-hostname “k8s-master01” && exec bash
 sudo hostnamectl set-hostname “k8s-worker01” && exec bash
@@ -108,8 +190,20 @@ sudo hostnamectl set-hostname “k8s-worker02” && exec bash
 sudo hostnamectl set-hostname “k8s-worker03” && exec bash
 ```
 
+Verify each node can be pinged by name
+```bash
+ping k8s-master01
+ping k8s-worker01
+ping k8s-worker02
+ping k8s-worker03
+```
 
-
+Start the kublet on each node
+```bash
+sudo systemctl enable --now kubelet
+```
+> [!IMPORTANT]
+> This is a great time to snapshot each node for rollback
 
 ====  ^^ current ^^ ====
 ====  vv still needs updated vv ====

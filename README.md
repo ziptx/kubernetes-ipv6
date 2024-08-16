@@ -15,13 +15,13 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
   - Any hypervisor or (4) physical\virtual machines can meet this requirement 
 - (4) Virtual Machines - Installed with AlmaLinux 9 Minminal ISO [^iso]
 - Kubernetes setup is (1) controller node and (3) worker nodes
-  -  k8s-master01 [`fdaa:bbcc:dd01:2600::230`] /64 
+  -  k8s-control01 [`fdaa:bbcc:dd01:2600::230`] /64 
   -  k8s-worker01 [`fdaa:bbcc:dd01:2600::231`] /64
   -  k8s-worker02 [`fdaa:bbcc:dd01:2600::232`] /64
   -  k8s-worker03 [`fdaa:bbcc:dd01:2600::233`] /64
 - The 'node' address space is  [`fdaa:bbcc:dd01:2600::`] /64
-- The 'service' address space is [`fdaa:bbcc:dd01:260a::`] /64
-- The 'pod' address space is [`fdaa:bbcc:dd01:260b::`] /64
+- The 'service' address space is [`fdaa:bbcc:dd01:260b::`] /64
+- The 'pod' address space is [`fdaa:bbcc:dd01:260c::`] /64
 
 > [!TIP]
 > All addresses are part of the `fdaa:bb:cc:dd01:26xx /56` subnet (xx are hex numbers defined by you).
@@ -56,7 +56,7 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 Add the following entries in /etc/hosts file
 ```bash
 cat <<EOF | sudo tee /etc/hosts
-fdaa:bbcc:dd01:2600::230   k8s-master01
+fdaa:bbcc:dd01:2600::230   k8s-control01
 fdaa:bbcc:dd01:2600::231   k8s-worker01
 fdaa:bbcc:dd01:2600::232   k8s-worker02
 fdaa:bbcc:dd01:2600::233   k8s-worker03
@@ -76,9 +76,9 @@ sudo sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/sy
 ```
 
 Firewall Rules for Kubernetes  
-> :four_leaf_clover: Run ALL on "base template" for simplicity *OR* :koala: Run individually on master/worker nodes for granualarity
+> :four_leaf_clover: Run ALL on "base template" for simplicity *OR* :koala: Run individually on control/worker nodes for granualarity
 ```bash
-echo MASTER NODE rules
+echo CONTROL NODE rules
 sudo firewall-cmd --permanent --add-port={6443,2379-2380,10250,10259,10257}/tcp
 sudo firewall-cmd --reload
 echo WORKER NODE rules
@@ -176,15 +176,20 @@ Verify kubectl is installed
 ```bash
 kubectl verison
 ```
+> References:
+> https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
 
 > [!IMPORTANT]
 > ### CLONE the Template VM
 > This is the time to CLONE THE TEMPLATE / snapshot / and individualize
 
 ### Individualize EACH node
+
+If cloned from template:  Update each node with correct Node IP address as listed above
+
 Run each line on a different node that the command matches
 ```bash
-sudo hostnamectl set-hostname “k8s-master01” && exec bash
+sudo hostnamectl set-hostname “k8s-control01” && exec bash
 sudo hostnamectl set-hostname “k8s-worker01” && exec bash
 sudo hostnamectl set-hostname “k8s-worker02” && exec bash
 sudo hostnamectl set-hostname “k8s-worker03” && exec bash
@@ -203,116 +208,11 @@ Start the kublet on each node
 sudo systemctl enable --now kubelet
 ```
 > [!IMPORTANT]
+> ### SNAPSHOT ALL VMs
 > This is a great time to snapshot each node for rollback
 
-###  Instantiate Kubernetes Control Node
-On MASTER node create yaml file in home directory </br>
-
-https://github.com/ziptx/kubernetes-ipv6/blob/f4d2215a4f32080c940dd79008cc108278c0cb0e/k8s-basic.yaml#L1-L40
-
-### Next
-====  ^^ current ^^ ====
-====  vv still needs updated vv ====
-
-https://github.com/ziptx/kubernetes-ipv6/blob/cb221e80071d4d3d080d52a5b9eeaeb738cb9f1a/join-config.yaml#L1-L20
-
-https://github.com/ziptx/kubernetes-ipv6/blob/main/join-config.yaml?plain=1
-
-
-## Set up a container runtime (Docker CE)
-
-I found Docker CE the easiest to set up, following the instructions at https://kubernetes.io/docs/setup/production-environment/container-runtimes/ although you could try an alternative.
-
-First, enable IPv6 forwarding and IP tables; although not mentioned in the Docker CE install they are used later.
-
-```bash
-# Setup required sysctl IPv6 params, these persist across reboots.
-cat <<EOF | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
-net.ipv6.conf.all.forwarding        = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-EOF
-
-# Apply sysctl params without reboot
-sudo sysctl --system
-```
-
-This installs a specific version of Docker CE:
-
-```bash
-# Prerequisite packages
-sudo apt-get update
-sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg2
-
-# Add Docker's official GPG key:
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-  | sudo apt-key --keyring /etc/apt/trusted.gpg.d/docker.gpg add -
-
-# Add the Docker apt repository:
-sudo add-apt-repository \
-  "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) \
-  stable"
-
-# Install Docker CE
-sudo apt-get update
-sudo apt-get install -y \
-  containerd.io=1.2.13-2 \
-  docker-ce=5:19.03.11~3-0~ubuntu-$(lsb_release -cs) \
-  docker-ce-cli=5:19.03.11~3-0~ubuntu-$(lsb_release -cs)
-
-# Set up the Docker daemon
-cat <<EOF | sudo tee /etc/docker/daemon.json
-{
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "100m"
-  },
-  "storage-driver": "overlay2"
-}
-EOF
-
-# Create /etc/systemd/system/docker.service.d
-sudo mkdir -p /etc/systemd/system/docker.service.d
-
-# Restart Docker
-sudo systemctl daemon-reload
-sudo systemctl restart docker
-
-# Set docker to start on boot
-sudo systemctl enable docker
-
-
-
-## Installing kubeadm, kubelet and kubectl
-
-Follow the instructions at https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
-
-The iptables configuration is already done above, and both overlay and br_filter should be installed with docker.
-
-The package installation excludes them from automatic updates:
-
-```bash
-# Prerequisite packages
-sudo apt-get update
-sudo apt-get install -y apt-transport-https curl
-
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-
-cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
-deb https://apt.kubernetes.io/ kubernetes-xenial main
-EOF
-
-sudo apt-get update
-sudo apt-get install -y kubelet kubeadm kubectl
-sudo apt-mark hold kubelet kubeadm kubectl
-```
 
 ## Set up the Kubernetes control plane
-
-### Prepare a configuration file
-
-We need to use a `kubeadm init` configuration file for IPv6, as per the notes at https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-init/#config-file
 
 > [!TIP]
 > You can get a copy of the default configuration, however a lot of the options can be deleted from the file as the default is fine. However we do need to configure the options needed for IPv6 for each component in the Kubernetes stack. Details for this taken from the excellent talk by André Martins, https://www.youtube.com/watch?v=q0J722PCgvY
@@ -325,6 +225,154 @@ We need to use a `kubeadm init` configuration file for IPv6, as per the notes at
 > | kube-controller-manager | 87 CLI options, <br> 5 relevant for IPv6 | --allocate-node-cidrs=true <br> --bind-address '::' <br> --cluster-cidr=fd02::/80 <br> --node-cidr-mask-size 96 <br> --service-cluster-ip-range=fd03::/112 <br> |
 > | kubelet | 160 options, <br> 3 relevant for IPv6 | --bind-address '::' <br> --cluster-dns=fd03::a <br> --node-ip=fd00:0b <br> |
 
+> [!TIP]
+> Calico documentation references the following as being required for [IPv6 only](https://docs.tigera.io/calico/latest/networking/ipam/ipv6-control-plane) function of Kuberenetes APIs & services. 
+> To configure Kubernetes components for IPv6 only, set the following flags.
+> | Component | Flag	Value | Content|
+> | --- | --- | --- |
+> | kube-apiserver | --bind-address or --insecure-bind-address	| Set to the appropriate IPv6 address or :: for all IPv6 addresses on the host. |
+> | |--advertise-address|	Set to the IPv6 address that nodes should use to access the kube-apiserver. |
+> | kube-controller-manager | --master	| Set with the IPv6 address where the kube-apiserver can be accessed. |
+> | kube-scheduler | --master |	Set with the IPv6 address where the kube-apiserver can be accessed. |
+> | kubelet |	--address	| Set to the appropriate IPv6 address or :: for all IPv6 addresses. |
+> | | --cluster-dns	| Set to the IPv6 address that will be used for the service DNS; this must be in the range used for --service-cluster-ip-range. |
+> | | --node-ip	| Set to the IPv6 address of the node. |
+> | kube-proxy | --bind-address | Set to the appropriate IPv6 address or :: for all IPv6 addresses on the host. |
+> | | --master | Set with the IPv6 address where the kube-apiserver can be accessed. |
+
+> [!TIP]
+> You cannot create create a native IPv6 cluster by just using `kube init' flags, you must use a config file for initialization.
+> Will not work:
+> ```bash
+> sudo kubeadm init \
+> --pod-network-cidr=fdaa:bbcc:dd01:260c::/64 \
+> --service-cidr=fdaa:bbcc:dd01:260b:/112 \
+> --control-plane-endpoint=k8s-master01 \
+> --apiserver-advertise-address=fdaa:bbcc:dd01:2600::230
+> ``` 
+
+### Prepare a configuration file
+We need to use a `kubeadm init` configuration file for IPv6 as per the tips above.
+
+On the CONTROL node create a `.yaml` file for initializing the cluster.  A modified configuration file with the IPv6 changes already applied is below and available for download. </br>
+https://github.com/ziptx/kubernetes-ipv6/blob/ff984bbbb7c9c81072c84b7f6be8632f48ed248b/k8s-basic.yaml#L1-L37
+
+-OR- Download the file
+```bash
+curl -O https://raw.githubusercontent.com/ziptx/kubernetes-ipv6/main/k8s-basic.yaml
+```
+
+Do a dry run to check the config file and expected output:
+```bash
+sudo kubeadm init --config=k8s-basic.yaml --dry-run -v=5 | more
+```
+
+### Initialize the cluster CONTROL plane 
+
+Once the configuration is ready, use it to initialize the Kubernetes CONTROL plane node ONLY:
+
+```bash
+sudo kubeadm init --config=k8s-basic.yaml -v=5 
+.
+.
+.
+"Your Kubernetes control-plane has initialized successfully!"
+```
+
+> ![WARNING]
+>  Take note of the token to use for joining worker nodes.   You need to follow the instructions to get kubectl to work as a non-root user, either creating the `.kube/config` file or exporting `admin.conf`.
+
+```bash
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+```
+
+At this point you can checking the status. The etcd, apiserver, controller manager, and scheduler should be running, although CoreDNS requires a networking add on before it will start, as mentioned in the init output.
+
+```bash
+kubectl get all --all-namespaces
+```
+
+### Initialize ALL the cluster worker nodes
+Make sure kubelet is running
+```bash
+sudo systemctl enable --now kubelet
+sydo systemctl status kubelet
+```
+
+Reference the CONTROL node after install to aquire the instructions you will use to initialize the worker nodes into the cluster.
+```bash
+sudo kubeadm join [fdaa:bbcc:dd01:2600::230]:6443 --token te7lbk.xxxxxxxxxxxxxxxx \
+        --discovery-token-ca-cert-hash sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Attach ALL worker nodes
+
+## Deploy a Container Network Interface (CNI)
+The `kubeadm init` output instructs that you must also deploy a pod network, a Container Network Interface (CNI), to get things working, and the output of init provides a link to a list. https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Base Kubernetes is tested with Calico, and it also supports IPv6, with instructions for the needed setup changes. [https://docs.projectcalico.org/networking/ipv6](https://docs.tigera.io/calico/latest/networking/ipam/ipv6#enable-ipv6-only)
+
+On the CONTROL node prep the cluster with Calico custom resource definitions
+> At time of writing, the Calico version is 3.28.1.  Please adjust as needed, but PLEASE NOTE there are breaking changes between versions and compatability requirements with Calico.
+```bash
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.1/manifests/tigera-operator.yaml
+```
+
+> References
+> https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart
+
+### OPTION: Calico with VXLAN
+This EASY network option allows you to quickly get connectivity of `pods` between `nodes`.   This does NOT provide network access directly to the pods or services.   This mimics the isolated 'internal' network of a Docker instance.   With a Cloud provider, they provide a `LoadBalancer` into this network.   A future write-up may address this.  If you want external access to the pod network, use the [OPTION: Calico with BGP](OPTION:-Calico-with-bgp) below.
+
+On the CONTROL node create a `.yaml` file for initializing the CNI.  A modified configuration file with the IPv6 changes already applied is below and available for download. </br>
+https://github.com/ziptx/kubernetes-ipv6/blob/ff984bbbb7c9c81072c84b7f6be8632f48ed248b/calico-basic-vxlan.yaml#L1-L22
+
+-OR- Download the file
+```bash
+curl -O https://raw.githubusercontent.com/ziptx/kubernetes-ipv6/main/calico-basic-vxlan.yaml
+```
+
+
+
+On the CONTROL node apply the '.yaml' configuration file from above:
+```bash
+kubectl apply -f calico-basic-vxlan.yaml
+```
+
+After this you can check everything is running. If successful, then there should be some calico pods, and the coredns pods should now be running.
+
+```bash
+kubectl get all --all-namespaces
+```
+
+Skip to [Install calicoctl](install-calicoctl) to continue
+
+
+### OPTION: Calico with BGP
+
+To be added
+
+[Install calicoctl]
+
+After this you can check everything is running. If successful, then there should be some calico pods, and the coredns pods should now be running.
+
+```bash
+kubectl get all --all-namespaces
+```
+
+
+
+
+
+
+### Next
+====  ^^ current ^^ ====
+====  vv still needs updated vv ====
+
+### Address planning ###
 To set the options you need to use the address of your server and plan the ranges you will use for Services and Pods, and how they will be allocated to Nodes.
 
 You can use either public assigned addresses (recommended if available) or Unique Local Addresses (ULA, the equivalent of private address ranges, will require custom routing or NAT).
@@ -340,109 +388,12 @@ For public addresses if you have been assigned a single `/64`, e.g. `2001:db8:12
 | `2001:db8:1234:5678:8:2::/104`   | Node CIDR. Range used to allocate subnets to Nodes. Maximum difference in Kubernates between Node range and block size (below) is 16 (Calico allows any size). |
 | `2001:db8:1234:5678:8:2:xx:xx00/120` | Allocate a `/120` CIDR from the Node CIDR range to each node; each Pod gets an address from the range. This allows 65,000 Nodes, with 250 Pods on each. Calico block range is 116-128 with default `/122` for 64 Pods per Node (Kubernetes allows larger subnets). |
 
-We want to customise the control plane with the IPv6 configuration settings from above, and also configure the cgroup driver. https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/control-plane-flags/
 
-This gives us the following configuration file template, where you can insert your address ranges and host name (see below for how to download and do this):
 
-```yaml
-apiVersion: kubeadm.k8s.io/v1beta2
-kind: InitConfiguration
-localAPIEndpoint:
-  advertiseAddress: 2001:db8:1234:5678::1
-nodeRegistration:
-  criSocket: /var/run/dockershim.sock
-  name: node0001
-  kubeletExtraArgs:
-    cluster-dns: 2001:db8:1234:5678:8:3:0:a
-    node-ip: 2001:db8:1234:5678::1
----
-apiServer:
-  extraArgs:
-    advertise-address: 2001:db8:1234:5678::1
-    bind-address: '::'
-    etcd-servers: https://[2001:db8:1234:5678::1]:2379
-    service-cluster-ip-range: 2001:db8:1234:5678:8:3::/112
-apiVersion: kubeadm.k8s.io/v1beta2
-controllerManager:
-  extraArgs:
-    allocate-node-cidrs: 'true'
-    bind-address: '::'
-    cluster-cidr: 2001:db8:1234:5678:8:2::/104
-    node-cidr-mask-size: '120'
-    service-cluster-ip-range: 2001:db8:1234:5678:8:3::/112
-etcd:
-  local:
-    dataDir: /var/lib/etcd
-    extraArgs:
-      advertise-client-urls: https://[2001:db8:1234:5678::1]:2379
-      initial-advertise-peer-urls: https://[2001:db8:1234:5678::1]:2380
-      initial-cluster: __HOSTNAME__=https://[2001:db8:1234:5678::1]:2380
-      listen-client-urls: https://[2001:db8:1234:5678::1]:2379
-      listen-peer-urls: https://[2001:db8:1234:5678::1]:2380
-kind: ClusterConfiguration
-networking:
-  serviceSubnet: 2001:db8:1234:5678:8:3::/112
-scheduler:
-  extraArgs:
-    bind-address: '::'
----
-apiVersion: kubelet.config.k8s.io/v1beta1
-cgroupDriver: systemd
-clusterDNS:
-- 2001:db8:1234:5678:8:3:0:a
-healthzBindAddress: ::1
-kind: KubeletConfiguration
-```
 
-You can also download the template and do a replace for your host name (node name), allocated `/64`, and master node address. Use the following, but insert your /64 for `xxxx` and your master node for `yyyy`. Include the last segment of your `/64` when replacing the master node to avoid conflict with the `::1` used for `healthzBindAddress`.
 
-Note that the `initial-cluster` parameter (the value replaced) needs to match the generated node name, which defaults to the host name, so we insert the host name into the config file (you can check this in the dry run ClusterStatus apiEndpoints, or in the mark-control-plane section, in case the node name differs).
 
-```bash
-curl -O https://raw.githubusercontent.com/sgryphon/kubernetes-ipv6/main/init-config-ipv6.yaml
-sed -i "s/__HOSTNAME__/$HOSTNAME/g" init-config-ipv6.yaml
 
-sed -i 's/2001:db8:1234:5678/xxxx:xxxx:xxxx:xxxx/g' init-config-ipv6.yaml
-sed -i 's/xxxx::1/xxxx::yyyy/g' init-config-ipv6.yaml
-```
-
-We can do a dry run to check the config file and expected output:
-
-```bash
-sudo kubeadm init --config=init-config-ipv6.yaml --dry-run | more
-```
-
-### Initialise the cluster control plane
-
-Once the configuration is ready, use it to initialise the Kubernetes control plane:
-
-```bash
-sudo kubeadm init --config=init-config-ipv6.yaml
-.
-.
-.
-"Your Kubernetes control-plane has initialized successfully!"
-```
-
-**IMPORTANT:** Take note of the token to use for joining worker nodes.
-
-You need to follow the instructions to get kubectl to work as a non-root user, either creating the `.kube/config` file or exporting `admin.conf`.
-
-For a single node cluster you also want to be able to schedule Pods on the master, so need to un-taint it.
-
-```bash
-mkdir -p $HOME/.kube
-sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
-
-kubectl taint nodes --all node-role.kubernetes.io/master-
-```
-
-At this point you can checking the status. The etcd, apiserver, controller manager, and scheduler should be running, although CoreDNS requires a networking add on before it will start, as mentioned in the init output.
-
-```bash
-kubectl get all --all-namespaces
-```
 
 ### Aside: Manual modifications to the kubeadm config file
 

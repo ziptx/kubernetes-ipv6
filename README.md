@@ -208,6 +208,11 @@ Start the kublet on each node
 ```bash
 sudo systemctl enable --now kubelet
 ```
+
+> [!IMPORTANT]
+>  ### REBOOT ALL NODES
+> Highly recommend REBOOT EVERY NODE to make suare all settings are fully applied
+
 > [!NOTE]
 > ### SNAPSHOT ALL VMs
 > This is a great time to snapshot each node for rollback

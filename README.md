@@ -391,12 +391,19 @@ calicoctl get profiles -o wide
 ```
 
 
-# Choose your connectivity testing
-### Connectivity Test A
+# Connectivity testing
+### ConOption A - Single Busybox
 
-### Connectivity Test B
 
-### Connectivity Test C
+### ConOption B - Multiple Busybox
+```bash
+kubectl create deployment pingtest --image=busybox --replicas=6 -- sleep infinity
+kubectl get pods --selector=app=pingtest --output=wide
+
+kubectl exec -ti pingtest-b4b6f8cf-b5z78 -- sh
+```
+
+### ConOption C
 
 
 

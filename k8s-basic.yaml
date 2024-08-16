@@ -1,0 +1,37 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: 'fdaa:bbcc:dd01:2600::230'
+  bindPort: 6443
+nodeRegistration:
+  criSocket: unix:///var/run/containerd/containerd.sock
+  imagePullPolicy: IfNotPresent
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+networking:
+  podSubnet: fdaa:bbcc:dd01:260c::/64
+  serviceSubnet: fdaa:bbcc:dd01:260b::/64
+apiServer:
+  extraArgs:
+    advertise-address: 'fdaa:bbcc:dd01:2600::230'
+    bind-address: '::'
+    service-cluster-ip-range: fdaa:bbcc:dd01:260b::/64
+controllerManager:
+  extraArgs:
+    master: 'https://[fdaa:bbcc:dd01:2600::230]:6443'
+    bind-address: '::'
+scheduler:
+  extraArgs:
+    master: 'https://[fdaa:bbcc:dd01:2600::230]:6443'
+    bind-address: '::'
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+node-ip: '::'
+address: '::'
+cgroupDriver: systemd
+clusterDNS:
+- 'fdaa:bbcc:dd01:260b::a'
+healthzBindAddress: '::1'
+kind: KubeletConfiguration

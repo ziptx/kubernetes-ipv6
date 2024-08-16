@@ -28,23 +28,87 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 
 [^iso]: https://repo.almalinux.org/almalinux/9.4/isos/x86_64/AlmaLinux-9.4-x86_64-minimal.iso
 
-## Main Steps for install
+## Step Overview 
 
-1. Set up the OS
+1. [Install the OS :four_leaf_clover:](#install-the-os)
+1. [Set up OS for k8s :four_leaf_clover:](set-up-os-for-k8s)
 1. Set up a container runtime
 1. Install Kubernetes components
 1. Set up the Kubernetes control plane
+> IF VIRTUALIZED - Clone "base template" into (4) VMs
+6. [Individualize EACH node :koala:](#indvidualize-each-node)
 1. Deploy a Container Network Interface (CNI)
 1. Configure routing
 1. Add management components
 
-## Set up the OS
+> [!TIP]
+> Create a VM snapshot after each step to help rollback to prevent extra work when a step fails. </br>
+> :four_leaf_clover: Global action that can be used for base template image / then cloned to all VMs </br>
+> :koala: Specific Action that must be done to each VM individually
 
-1. Install OS [^1]
-2. 
-3. 
+## Install the OS
+> [https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/](https://wiki.almalinux.org/documentation/installation-guide.html)
 
-[^1]: https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/
+## Set up OS for k8s
+> [!TIP]
+> Do these steps to the "base template" if you are cloning or on <ins>EACH</ins> node.
+
+Add the following entries in /etc/hosts file
+```bash
+cat <<EOF | sudo tee /etc/hosts
+fdaa:bbcc:dd01:2600::230   k8s-master01
+fdaa:bbcc:dd01:2600::231   k8s-worker01
+fdaa:bbcc:dd01:2600::232   k8s-worker02
+fdaa:bbcc:dd01:2600::233   k8s-worker03
+EOF
+```
+
+Disable Swap Space
+```bash
+sudo swapoff -a
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+```
+
+Adjust SELinux 
+```bash
+sudo setenforce 0
+sudo sed -i --follow-symlinks 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/sysconfig/selinux
+```
+
+Firewall Rules for Kubernetes  
+> :four_leaf_clover: Run ALL on "base template" for simplicity *OR* :koala: Run individually on master/worker nodes for granualarity
+```bash
+echo MASTER NODE rules
+sudo firewall-cmd --permanent --add-port={6443,2379-2380,10250,10259,10257}/tcp
+sudo firewall-cmd --reload
+echo WORKER NODE rules
+sudo firewall-cmd --permanent --add-port={10250,30000-32767}/tcp
+sudo firewall-cmd --reload
+echo CALICO rules all nodes
+sudo firewall-cmd --permanent --add-port={5473}/tcp
+sudo firewall-cmd --reload
+echo VXLAN rules all nodes
+sudo firewall-cmd --permanent --add-port=4789/udp
+sudo firewall-cmd --reload
+echo BGP rules all nodes
+sudo firewall-cmd --permanent --add-port=179/tcp
+sudo firewall-cmd --reload
+```
+> References: </br>
+> https://www.tigera.io/learn/guides/kubernetes-security/kubernetes-firewall/ </br>
+> https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements </br>
+> [https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/](https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/)
+
+## Individualize EACH node
+
+```bash
+sudo hostnamectl set-hostname “k8s-master01” && exec bash
+sudo hostnamectl set-hostname “k8s-worker01” && exec bash
+sudo hostnamectl set-hostname “k8s-worker02” && exec bash
+sudo hostnamectl set-hostname “k8s-worker03” && exec bash
+```
+
+
 
 
 ====  ^^ current ^^ ====

@@ -198,7 +198,7 @@ sudo hostnamectl set-hostname “k8s-worker03” && exec bash
 
 Verify each node can be pinged by name
 ```bash
-ping k8s-master01
+ping k8s-control01
 ping k8s-worker01
 ping k8s-worker02
 ping k8s-worker03
@@ -253,7 +253,7 @@ sudo systemctl enable --now kubelet
 > sudo kubeadm init \
 > --pod-network-cidr=fdaa:bbcc:dd01:260c::/64 \
 > --service-cidr=fdaa:bbcc:dd01:260b:/112 \
-> --control-plane-endpoint=k8s-master01 \
+> --control-plane-endpoint=k8s-control01 \
 > --apiserver-advertise-address=fdaa:bbcc:dd01:2600::230
 > ``` 
 

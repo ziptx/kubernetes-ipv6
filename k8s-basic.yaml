@@ -12,12 +12,12 @@ apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 networking:
   podSubnet: fdaa:bbcc:dd01:260c::/64
-  serviceSubnet: fdaa:bbcc:dd01:260b::/64
+  serviceSubnet: fdaa:bbcc:dd01:260b::/108
 apiServer:
   extraArgs:
     advertise-address: 'fdaa:bbcc:dd01:2600::230'
     bind-address: '::'
-    service-cluster-ip-range: fdaa:bbcc:dd01:260b::/64
+    service-cluster-ip-range: fdaa:bbcc:dd01:260b::/108
 controllerManager:
   extraArgs:
     master: 'https://[fdaa:bbcc:dd01:2600::230]:6443'

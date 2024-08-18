@@ -446,6 +446,7 @@ kubectl delete deployment pingtest
 ```
 > [!TIP]
 > Firewalld must be stopped on ALL nodes to allow pings to complete between pods.  I currently do not know why.  `sudo systemctl stop firewalld`
+> Issue: https://github.com/kubernetes/kubernetes/issues/97283
 
 ### ConOption C
 ```

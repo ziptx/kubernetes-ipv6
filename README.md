@@ -261,6 +261,10 @@ We need to use a `kubeadm init` configuration file for IPv6 as per the tips abov
 On the CONTROL node create a `.yaml` file for initializing the cluster.  A modified configuration file with the IPv6 changes already applied is below and available for download. </br>
 https://github.com/ziptx/kubernetes-ipv6/blob/ff984bbbb7c9c81072c84b7f6be8632f48ed248b/k8s-basic.yaml#L1-L37
 
+<!-- MARKDOWN-AUTO-DOCS:START (CODE:src=./k8s-basic.yaml) -->
+<!-- MARKDOWN-AUTO-DOCS:END -->
+
+
 -OR- Download the file
 ```bash
 curl -O https://raw.githubusercontent.com/ziptx/kubernetes-ipv6/main/k8s-basic.yaml

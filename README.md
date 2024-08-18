@@ -1,5 +1,5 @@
 # Kubernetes with IPv6 only (on AlmaLinux 9) 
-> "Bare Metal" environment build as of Aug 2024 
+> "Bare Metal" environment build as of Aug 2024 </br>
 > Should work on  Redhat 9 / Rocky Linux 9 / EL 9
 
 Configure a kubernetes cluster with IPv6 only.

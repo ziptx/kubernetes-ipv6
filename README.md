@@ -96,6 +96,9 @@ sudo firewall-cmd --permanent --add-port=179/tcp
 sudo firewall-cmd --reload
 ```
 
+> [!TIP]
+> Firewalld must be stopped on ALL nodes to allow pings to complete between pods.  `sudo systemctl stop firewalld`   See issue and tips below in [Connectivity Testing](#Connectivity-testing)
+
 Prevent NetworkManager from managing Calico interfaces
 ```bash
 sudo cat <<EOF | sudo tee /etc/NetworkManager/conf.d/calico.conf
@@ -431,6 +434,10 @@ calicoctl get profiles -o wide
 
 
 # Connectivity testing
+> [!TIP]
+> Firewalld must be stopped on ALL nodes to allow pings to complete between pods.  `sudo systemctl stop firewalld`
+> Issue: https://github.com/kubernetes/kubernetes/issues/97283 has several solutions.   The primary recommendation from [caseydavenport](https://github.com/kubernetes/kubernetes/issues/97283#issuecomment-756457912):  So, our general recommendation on the Calico side is to just disable firewalld and instead to use Calico to manage the firewall rules on the host. I think that's what most folks end up doing.
+
 ### ConnectOption A - Single Busybox
 
 
@@ -445,9 +452,7 @@ kubectl exec -ti pingtest-xxFromOutputAbovexx -- sh
 #cleanup test pods
 kubectl delete deployment pingtest
 ```
-> [!TIP]
-> Firewalld must be stopped on ALL nodes to allow pings to complete between pods.  I currently do not know why.  `sudo systemctl stop firewalld`
-> Issue: https://github.com/kubernetes/kubernetes/issues/97283
+
 
 ### ConOption C
 ```

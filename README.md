@@ -56,7 +56,7 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 
 Add the following entries in /etc/hosts file
 ```bash
-sudo cat <<EOF | sudo tee /etc/hosts
+sudo cat <<EOF | sudo tee -a /etc/hosts
 fdaa:bbcc:dd01:2600::230   k8s-control01
 fdaa:bbcc:dd01:2600::231   k8s-worker01
 fdaa:bbcc:dd01:2600::232   k8s-worker02
@@ -285,15 +285,35 @@ sudo kubeadm init --config=k8s-basic.yaml --dry-run -v=5 | more
 Once the configuration is ready, use it to initialize the Kubernetes CONTROL plane node ONLY:
 
 ```bash
-sudo kubeadm init --config=k8s-basic.yaml -v=5 
-.
-.
-.
-"Your Kubernetes control-plane has initialized successfully!"
+sudo kubeadm init --config=k8s-basic.yaml -v=5
+```
+Results should be similar:
+```
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join [fdaa:bbcc:dd01:2600::230]:6443 --token te7lbk.xxxxxxxxxxxxxxxx \
+        --discovery-token-ca-cert-hash sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
+
 > [!IMPORTANT]
->  Take note of the token to use for joining worker nodes.   You need to follow the instructions to get kubectl to work as a non-root user, either creating the `.kube/config` file or exporting `admin.conf`.
+>  Take note of the command with the token to use for joining worker nodes.   You ALSO need to follow the instructions to get kubectl to work as a non-root user, either creating the `.kube/config` file or exporting `admin.conf`.
 
 ```bash
 mkdir -p $HOME/.kube

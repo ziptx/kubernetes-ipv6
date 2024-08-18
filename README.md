@@ -273,8 +273,9 @@ Do a dry run to check the config file and expected output:
 ```bash
 sudo kubeadm init --config=k8s-basic.yaml --dry-run -v=5 | more
 ```
-> ![Tip]
-> You will receive a 'node-ip' error in the verbose messages.   This line must exist or the cluster will not initialze correctly.  Hopefully a bug report will get opened on this.
+
+> [!TIP]
+> You will receive a 'node-ip' error in the verbose messages.   This `yaml` config line must exist or the cluster will not initialze correctly.  Hopefully a bug report will get opened on this.
 > '''
 > W0817 17:55:56.077474    1937 initconfiguration.go:319] error unmarshaling configuration schema.GroupVersionKind{Group:"kubelet.config.k8s.io", Version:"v1beta1", Kind:"KubeletConfiguration"}: strict decoding error: unknown field "node-ip"
 > W0817 17:55:56.077730    1937 configset.go:177] error unmarshaling configuration schema.GroupVersionKind{Group:"kubelet.config.k8s.io", Version:"v1beta1", Kind:"KubeletConfiguration"}: strict decoding error: unknown field "node-ip"

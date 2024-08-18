@@ -430,19 +430,25 @@ calicoctl get profiles -o wide
 
 
 # Connectivity testing
-### ConOption A - Single Busybox
+### ConnectOption A - Single Busybox
 
 
-### ConOption B - Multiple Busybox
+### ConnectOption B - Multiple Busybox
+This spins up (2) pods of busybox on each worker node.   So you can test pod<->pod connectivity locally on the node as well as across nodes.
 ```bash
 kubectl create deployment pingtest --image=busybox --replicas=6 -- sleep infinity
 kubectl get pods --selector=app=pingtest --output=wide
-
-kubectl exec -ti pingtest-b4b6f8cf-b5z78 -- sh
+kubectl exec -ti pingtest-xxFromOutputAbovexx -- sh
+#cleanup
+kubectl delete deployment pingtest
 ```
 
 ### ConOption C
-
+```
+kubectl create deployment mytools --image=nicolaka/netshoot --replicas=6 -- sleep infinity
+kubectl get pods --selector=app=mytools --output=wide
+kubectl exec -ti mytools-xxFromOutputAbovexx -- sh
+```
 
 
 # Using Kubernetes

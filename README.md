@@ -364,13 +364,13 @@ kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.1
 This EASY network option allows you to quickly get connectivity of `pods` between `nodes`.   This does NOT provide network access directly to the pods or services.   This mimics the isolated 'internal' network of a Docker instance.   With a Cloud provider, they provide a `LoadBalancer` into this network.   A future write-up may address this.  If you want external access to the pod network, use the [OPTION: Calico with BGP](OPTION:-Calico-with-bgp) below.
 
 On the CONTROL node create a `.yaml` file for initializing the CNI.  A modified configuration file with the IPv6 changes already applied is below and available for download. </br>
-https://github.com/ziptx/kubernetes-ipv6/blob/ff984bbbb7c9c81072c84b7f6be8632f48ed248b/calico-basic-vxlan.yaml#L1-L22
-
+https://github.com/ziptx/kubernetes-ipv6/blob/4b1c2fc53db76b298a5b85e943b5ec9278ccb764/calico-basic-vxlan.yaml#L1-L22
 -OR- Download the file
 ```bash
 curl -O https://raw.githubusercontent.com/ziptx/kubernetes-ipv6/main/calico-basic-vxlan.yaml
 ```
 
+[embedmd]:# (calico-basic-vxlan.yaml yaml)
 
 
 On the CONTROL node apply the '.yaml' configuration file from above:

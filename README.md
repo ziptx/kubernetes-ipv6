@@ -56,7 +56,7 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 
 Add the following entries in /etc/hosts file
 ```bash
-cat <<EOF | sudo tee /etc/hosts
+sudo cat <<EOF | sudo tee /etc/hosts
 fdaa:bbcc:dd01:2600::230   k8s-control01
 fdaa:bbcc:dd01:2600::231   k8s-worker01
 fdaa:bbcc:dd01:2600::232   k8s-worker02
@@ -98,7 +98,7 @@ sudo firewall-cmd --reload
 
 Prevent NetworkManager from managing Calico interfaces
 ```bash
-cat <<EOF | sudo tee /etc/NetworkManager/conf.d/calico.conf
+sudo cat <<EOF | sudo tee /etc/NetworkManager/conf.d/calico.conf
 [keyfile]
 unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vx
 EOF
@@ -106,7 +106,7 @@ EOF
 
 Kernel Modules needed for containerd.io
 ```bash
-cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf 
+sudo cat <<EOF | sudo tee /etc/modules-load.d/containerd.conf 
 overlay
 br_netfilter
 EOF
@@ -114,7 +114,7 @@ EOF
 
 Allow node to route
 ```bash
-cat <<EOF | sudo tee  /etc/sysctl.d/k8s.conf
+sudo cat <<EOF | sudo tee  /etc/sysctl.d/k8s.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.ipv6.conf.all.forwarding        = 1
 EOF
@@ -154,7 +154,7 @@ sudo systemctl status containerd
 
 Setup Kubernetes repo
 ```bash
-cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+sudo cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
 name=Kubernetes
 baseurl=https://pkgs.k8s.io/core:/stable:/v1.30/rpm/
@@ -173,7 +173,7 @@ Do NOT start kublet until cloned. :koala:
 
 Verify kubectl is installed
 ```bash
-kubectl verison
+kubectl version
 ```
 > References:
 > https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
@@ -270,6 +270,12 @@ Do a dry run to check the config file and expected output:
 ```bash
 sudo kubeadm init --config=k8s-basic.yaml --dry-run -v=5 | more
 ```
+> ![Tip]
+> You will receive a 'node-ip' error in the verbose messages.   This line must exist or the cluster will not initialze correctly.  Hopefully a bug report will get opened on this.
+> '''
+> W0817 17:55:56.077474    1937 initconfiguration.go:319] error unmarshaling configuration schema.GroupVersionKind{Group:"kubelet.config.k8s.io", Version:"v1beta1", Kind:"KubeletConfiguration"}: strict decoding error: unknown field "node-ip"
+> W0817 17:55:56.077730    1937 configset.go:177] error unmarshaling configuration schema.GroupVersionKind{Group:"kubelet.config.k8s.io", Version:"v1beta1", Kind:"KubeletConfiguration"}: strict decoding error: unknown field "node-ip"
+
 
 ### Initialize the cluster CONTROL plane 
 
@@ -341,14 +347,20 @@ curl -O https://raw.githubusercontent.com/ziptx/kubernetes-ipv6/main/calico-basi
 
 On the CONTROL node apply the '.yaml' configuration file from above:
 ```bash
-kubectl apply -f calico-basic-vxlan.yaml
+kubectl create -f calico-basic-vxlan.yaml
 ```
 
 After this you can check everything is running. If successful, then there should be some calico pods, and the coredns pods should now be running.
 
 ```bash
-kubectl get all --all-namespaces
+watch kubectl get pods -n calico-system
 ```
+
+> [!TIP]
+> Some troubleshooting commands:
+> ```
+>  kubectl get tigerastatus -o yaml
+> ```
 
 Skip to [Install calicoctl](install-calicoctl) to continue
 

@@ -436,12 +436,16 @@ calicoctl get profiles -o wide
 ### ConnectOption B - Multiple Busybox
 This spins up (2) pods of busybox on each worker node.   So you can test pod<->pod connectivity locally on the node as well as across nodes.
 ```bash
+#start test pods
 kubectl create deployment pingtest --image=busybox --replicas=6 -- sleep infinity
+#test between pods
 kubectl get pods --selector=app=pingtest --output=wide
 kubectl exec -ti pingtest-xxFromOutputAbovexx -- sh
-#cleanup
+#cleanup test pods
 kubectl delete deployment pingtest
 ```
+> [!TIP]
+> Firewalld must be stopped on ALL nodes to allow pings to complete between pods.  I currently do not know why.  `sudo systemctl stop firewalld`
 
 ### ConOption C
 ```

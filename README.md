@@ -42,6 +42,7 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 1. Deploy a Container Network Interface (CNI)
 1. Configure routing
 1. Add management components
+2. [Choose a CNI Adventure](#choose-a-cni-adventure)
 
 > [!TIP]
 > Create a VM snapshot after each step to help rollback to prevent extra work when a step fails. </br>
@@ -333,6 +334,7 @@ At this point you can start checking the status. The etcd, apiserver, controller
 kubectl get all --all-namespaces
 ```
 
+
 ### Initialize ALL the cluster worker nodes
 :koala: Perform on ALL worker nodes </br>
 Make sure kubelet is running
@@ -347,92 +349,13 @@ sudo kubeadm join [fdaa:bbcc:dd01:2600::230]:6443 --token te7lbk.xxxxxxxxxxxxxxx
         --discovery-token-ca-cert-hash sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-# Deploy a Container Network Interface (CNI)
-The `kubeadm init` output instructs that you must also deploy a pod network, a Container Network Interface (CNI), to get things working. Base Kubernetes is tested with Calico, and supports IPv6.
+# Choose a CNI Adventure
+Now is the time to 'Choose your own adventure' for deploying a Container Network Interface (CNI).   There are several paths for exploring different networking.   I recommend to start with simple Calico with VXLAN for a quick start.
 
-On the CONTROL node prep the cluster with Calico custom resource definitions
-> At time of writing, the Calico version is 3.28.1.  Please adjust as needed, but PLEASE NOTE there are breaking changes between versions and compatability requirements with Calico.
-```bash
-kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.1/manifests/tigera-operator.yaml
-```
-
-> References
-> https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart
-> https://docs.tigera.io/calico/latest/networking/ipam/ipv6#enable-ipv6-only
-
-### OPTION: Calico with VXLAN
-This EASY network option allows you to quickly get connectivity of `pods` between `nodes`.   This does NOT provide network access directly to the pods or services.   This mimics the isolated 'internal' network of a Docker instance.   With a Cloud provider, they provide a `LoadBalancer` into this network.   A future write-up may address this.  If you want external access to the pod network, use the [OPTION: Calico with BGP](OPTION:-Calico-with-bgp) below.
-
-On the CONTROL node create a `.yaml` file for initializing the CNI.  A modified configuration file with the IPv6 changes already applied is below and available for download. </br>
-https://github.com/ziptx/kubernetes-ipv6/blob/4b1c2fc53db76b298a5b85e943b5ec9278ccb764/calico-basic-vxlan.yaml#L1-L22
--OR- Download the file
-```bash
-curl -O https://raw.githubusercontent.com/ziptx/kubernetes-ipv6/main/calico-basic-vxlan.yaml
-```
-
-[embedmd]:# (calico-basic-vxlan.yaml yaml)
-
-
-On the CONTROL node apply the '.yaml' configuration file from above:
-```bash
-kubectl create -f calico-basic-vxlan.yaml
-```
-
-After this you can check everything is running. If successful, then there should be some calico pods, and the coredns pods should now be running.
-
-```bash
-watch kubectl get pods -n calico-system
-```
-
-> [!TIP]
-> Some troubleshooting commands:
-> ```
->  kubectl get tigerastatus -o yaml
-> ```
-
-Skip to [Install calicoctl](install-calicoctl) to continue
-
-
-### OPTION: Calico with BGP
-
-To be added
-
-### Install calicoctl
-`calicoctl` is a CLI tool that is largely meant to be run on a user's client machine and shouldn't need to be deployed to the cluster itself, and the operator is responsible for installing Calico components that run on the cluster.  `calicoctl` is being depricated but is required to manage Calico BGP installs.  The following assumes administrations is being done on the CONTROL node, and is installed there. 
-
-> [!TIP]
-> Consider navigating to a location that's in your PATH for install. For example, /usr/local/bin/.
-
-> [!TIP]
-> Much documentation will refer to using `calicoctl`, but the plugin can also be used as `kubectl calico`.  ie `kube calico -h`  The single host instructions below setup both commands to work.
-
-#### Install calicoctl as a binary on a single host
-https://docs.tigera.io/calico/latest/operations/calicoctl/install#install-calicoctl-as-a-binary-on-a-single-host
-> At time of writing, the Calico version is 3.28.1.  Please adjust as needed, but PLEASE NOTE there are breaking changes between versions and compatability requirements with Calico.
-```bash
-cd /usr/local/bin
-sudo curl -L https://github.com/projectcalico/calico/releases/download/v3.28.1/calicoctl-linux-amd64 -o kubectl-calico
-sudo chmod +x kubectl-calico
-cat <<EOF | sudo tee /usr/local/bin/calicoctl
-/usr/local/bin/kubectl-calico "\$@"
-EOF
-sudo chmod +x calicoctl
-```
-
-
-#### Install calicoctl as a Pod (problematic if cluster not healthy and deprecated):
-```bash
-kubectl apply -f https://docs.projectcalico.org/manifests/calicoctl.yaml
-
-# Save an alias in bash config, and then load it
-cat <<EOF | tee -a ~/.bash_aliases
-alias calicoctl="kubectl exec -i -n kube-system calicoctl -- /calicoctl"
-EOF
-. ~/.bash_aliases
-
-calicoctl get profiles -o wide
-```
-
+* [Calico with VXLAN](../howto-cni-calico.md)
+* [Calico with BGP] (../howto-cni-calico.md) 
+* [Calico by sgryphon](../howto-cni-sgryphon.md)
+* [Cilium with e
 
 # Connectivity testing
 > [!TIP]
@@ -489,212 +412,6 @@ For public addresses if you have been assigned a single `/64`, e.g. `2001:db8:12
 | `2001:db8:1234:5678:8:2:xx:xx00/120` | Allocate a `/120` CIDR from the Node CIDR range to each node; each Pod gets an address from the range. This allows 65,000 Nodes, with 250 Pods on each. Calico block range is 116-128 with default `/122` for 64 Pods per Node (Kubernetes allows larger subnets). |
 
 
-
-
-
-
-
-
-### Aside: Manual modifications to the kubeadm config file
-
-You can get a copy of the default configuration, including Kubelet, from kubeadm:
-
-```bash
-kubeadm config print init-defaults --component-configs KubeletConfiguration \
-  | tee init-defaults-config.yaml
-```
-
-The IPv6 changes required are described above, and you can make any other changes you need for your cluster configuration.
-
-A good approach when making changes is to make a small change at a time and then do a dry-run to ensure the configuration is still valid.
-
-## Deploy a Container Network Interface (CNI)
-
-The `kubeadm init` output instructs that you must also deploy a pod network, a Container Network Interface (CNI), to get things working, and the output of init provides a link to a list. https://kubernetes.io/docs/concepts/cluster-administration/addons/
-
-Base Kubernetes is tested with Calico, and it also supports IPv6, with instructions for the needed setup changes. https://docs.projectcalico.org/networking/ipv6
-
-A modified configuration file with the IPv6 changes already applied is available for download. (Alternatively you can make the modifications yourself, see below.)
-
-```bash
-curl -O https://raw.githubusercontent.com/sgryphon/kubernetes-ipv6/main/calico-ipv6.yaml
-
-sed -i 's/2001:db8:1234:5678/xxxx:xxxx:xxxx:xxxx/g' calico-ipv6.yaml
-```
-
-Then apply the configuration, which will set up all the custom object definitions and the calico service:
-
-```bash
-kubectl apply -f calico-ipv6.yaml
-```
-
-After this you can check everything is running. If successful, then there should be some calico pods, and the coredns pods should now be running.
-
-```bash
-kubectl get all --all-namespaces
-```
-
-### Installing calicoctl
-
-For future administration of calico, you can also install calicoctl. https://docs.projectcalico.org/getting-started/clis/calicoctl/install
-
-For example, to install calicoctl as a Pod:
-
-```bash
-kubectl apply -f https://docs.projectcalico.org/manifests/calicoctl.yaml
-
-# Save an alias in bash config, and then load it
-cat <<EOF | tee -a ~/.bash_aliases
-alias calicoctl="kubectl exec -i -n kube-system calicoctl -- /calicoctl"
-EOF
-. ~/.bash_aliases
-
-calicoctl get profiles -o wide
-```
-
-### Aside: Manual modifications to the calico install file
-
-An already modified version is available for download as above, otherwise you can make the changes yourself (e.g. if calico updates the main manifest).
-
-Following the main install guide first, download the config file for "Install Calico with Kubernetes API datastore, 50 nodes or less".
-
-```bash
-curl https://docs.projectcalico.org/manifests/calico.yaml -O
-```
-
-Edit as per the IPv6 instructions and disable encapsulation (not needed for IPv6).
-
-For step 3, modify the section at the top for "# Source: calico/templates/calico-config.yaml" in data > cni_network_config, and set assign_ipv6.
-
-```json
- "ipam": {
-        "type": "calico-ipam",
-        "assign_ipv4": "false",
-        "assign_ipv6": "true"
-    },
-```
-
-For steps 4, 5, and the optional bit to turn off IPv4, you need to go past all the CustomResourceDefinition sections and find the section "# Source: calico/templates/calico-node.yaml".
-
-Scroll down a bit more to find spec > template > spec > containers > name: calico-node > env, and set the environment variables. Enable IPv6 support, disable IPv4, set the router ID method. Also disable IPIP, as encapsulation is not needed with IPv6.
-
-```yaml
-- name: IP6
-  value: "autodetect"
-- name: FELIX_IPV6SUPPORT
-  value: "true"
-- name: IP
-  value: "none"
-- name: CALICO_ROUTER_ID
-  value: "hash"
-- name: CALICO_IPV4POOL_IPIP
-  value: "Never"
-- name: CALICO_IPV6POOL_CIDR
-  value: "2001:db8:1234:5678:8:2::/104"
-- name: CALICO_IPV6POOL_BLOCK_SIZE
-  value: "120"
-```
-
-The documents say that Calico will pick up the IP pool from kubeadm, but it didn't work for me and I got the default CIDR `fda0:95bd:f195::/48`(a random `/48`) with the default block size `/122` (which is 64 pods per node), as per https://docs.projectcalico.org/reference/node/configuration
-
-
-## Configure routing
-
-Once the networking is configured you should have all the cluster components talking to each other.
-
-You can test this by installing a Pod running a basic terminal instance (the Kubernetes examples use `busybox`, but also `dnsutils` and full `alpine`).
-
-```bash
-kubectl apply -f https://k8s.io/examples/admin/dns/busybox.yaml
-kubectl exec -ti busybox -- nslookup kubernetes.default
-```
-
-You can check communication (ping) between the host and Pods, and between Pods:
-
-```bash
-kubectl get pods --all-namespaces -o \
-  custom-columns='NAMESPACE:metadata.namespace','NAME:metadata.name','STATUS:status.phase','IP:status.podIP' 
-ping -c 2 `kubectl get pods busybox -o=custom-columns='IP:status.podIP' --no-headers`
-kubectl exec -ti busybox -- ping -c 2 `hostname -i`
-kubectl exec -ti busybox -- ping -c 2 \
-  `kubectl get pods -n kube-system -o=custom-columns='NAME:metadata.name','IP:status.podIP' | grep -m 1 coredns | awk '{print $2}'`
-```
-
-However communication with the rest of the Internet won't work unless incoming routes have been configured.
-
-Your hosting provider may route the entire /64 to your machine, or may simply make the range available to you and be expecting your server to respond to Neighbor Discovery Protocol (NDP) solicitation messages with advertisement of the addresses it can handle.
-
-Simply adding the address to the host would advertise it, but also handle the packets directly (INPUT), rather than forwarding to the cluster. To advertise the cluster addresses in response to solicitation you need to use a Neighbor Discovery Protocol proxy.
-
-Linux does have some limited ability to proxy NDP, but it is limited to individual addresses; a better solution is to use `ndppd`, the Neighbor Discovery Protocol Proxy Daemon, which supports proxying of entire ranges of addresses, https://github.com/DanielAdolfsson/ndppd
-
-This will respond to neighbor solicitation requests with advertisement of the Pod and Service addresses, allowing the upstream router to know to send those packets to the host. Use your addresses ranges in the configuration, advertising the Pod `/104` range automatically based on known routes, which includes individual pods (from `ip -6 route show`), and the entire `/112` Service range (as a static range).
-
-```bash
-# Install
-sudo apt update
-sudo apt install -y ndppd
-
-# Create config
-cat <<EOF | sudo tee /etc/ndppd.conf
-proxy eth0 {
-    rule 2001:db8:1234:5678:8:2::/104 {
-        auto
-    }
-    rule 2001:db8:1234:5678:8:3::/112 {
-        static
-    }
-}
-EOF
-
-# Restart
-sudo systemctl daemon-reload
-sudo systemctl restart ndppd
-
-# Set to run on boot
-sudo systemctl enable ndppd
-```
-
-Once running you can test that communication works between Pods and the Internet:
-
-```bash
-kubectl exec -ti busybox -- ping -c 2 2001:4860:4860::8888
-```
-
-### Routing alternatives
-
-If `ndppd` does not suite your needs, then you can look at the basic NDP proxy support in Linux, or at the BGP support in Calico.
-
-#### Basic NDP proxy
-
-Linux directly supports NDP proxying for individual addresses, although the functionality is considered deprecated:
-
-```
-sysctl -w net.ipv6.conf.eth0.proxy_ndp=1
-ip -6 neigh add proxy 2001:db8:1234:5678:8:2:42:1710 dev eth0
-```
-
-#### BGP
-
-Calico support BGP, and runs full mesh BGP between nodes in the cluster. See https://docs.projectcalico.org/networking/bgp
-
-For dynamic communication of routes to upstream routers, you can peer Calico using BGP (Note: based on documentation; not tested). Replace the values with those for your hosting provider, if they allow it.
-
-```bash
-cat <<EOF | tee calico-bgppeer.yaml
-apiVersion: projectcalico.org/v3
-kind: BGPPeer
-metadata:
-  name: global-peer
-spec:
-  peerIP: 2001:db1:80::3
-  asNumber: 64123
-EOF
-
-calicoctl create -f calico-bgppeer.yaml
-
-calicoctl node status
-```
 
 ## Troubleshooting
 

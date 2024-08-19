@@ -59,7 +59,7 @@ To be added
 > [!TIP]
 > Much documentation will refer to using `calicoctl`, but the plugin can also be used as `kubectl calico`.  ie `kube calico -h`  The single host instructions below setup both commands to work.
 
-#### Install calicoctl as a binary on a single host
+#### Install `calicoctl` as a binary on a single host
 https://docs.tigera.io/calico/latest/operations/calicoctl/install#install-calicoctl-as-a-binary-on-a-single-host
 > At time of writing, the Calico version is 3.28.1.  Please adjust as needed, but PLEASE NOTE there are breaking changes between versions and compatability requirements with Calico.
 ```bash
@@ -70,4 +70,11 @@ cat <<EOF | sudo tee /usr/local/bin/calicoctl
 /usr/local/bin/kubectl-calico "\$@"
 EOF
 sudo chmod +x calicoctl
+cd
+```
+
+Verify `calicoctl` install
+```bash
+calicoctl version
+kubectl calico version
 ```

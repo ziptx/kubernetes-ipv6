@@ -101,11 +101,12 @@ sudo firewall-cmd --reload
 > [!TIP]
 > Firewalld must be stopped on ALL nodes to allow pings to complete between pods.  `sudo systemctl stop firewalld`   See issue and tips below in [Connectivity Testing](#Connectivity-testing)
 
-Prevent NetworkManager from managing Calico interfaces
+Prevent NetworkManager from managing Calico interfaces [^NetworkManager]
+[^NetworkManager]: https://docs.tigera.io/calico/latest/operations/troubleshoot/troubleshooting#configure-networkmanager
 ```bash
 sudo cat <<EOF | sudo tee /etc/NetworkManager/conf.d/calico.conf
 [keyfile]
-unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vx
+unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
 EOF
 ```
 

@@ -34,25 +34,22 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 
 1. [Install the OS :four_leaf_clover:](#install-the-os)
 1. [Set up OS for k8s :four_leaf_clover:](#set-up-os-for-k8s)
-1. [Install container runtime :four_leaf_clover:](#install-container-runtime)
-1. Install Kubernetes components
-1. Set up the Kubernetes control plane
-> IF VIRTUALIZED - Clone "base template" into (4) VMs
-6. [Individualize EACH node :koala:](#indvidualize-each-node)
-1. Deploy a Container Network Interface (CNI)
-1. Configure routing
-1. Add management components
-2. [Choose a CNI Adventure](#choose-a-cni-adventure)
+1. [Set up the Kubernetes control plane](#Set-up-the-Kubernetes-control-plane)
+1. [Choose a CNI Adventure](#choose-a-cni-adventure)
+    -  [Calico with VXLAN](./howto-cni-calico.md)
+    - [Calico with BGP](./howto-cni-calico.md)   
+    - [Calico by sgryphon](./howto-cni-sgryphon.md)
+1. [Connectivity testing](#Connectivity-testing)
 
 > [!TIP]
 > Create a VM snapshot after each step to help rollback to prevent extra work when a step fails. </br>
 > :four_leaf_clover: Global action that can be used for base template image / then cloned to all VMs </br>
 > :koala: Specific Action that must be done to each VM individually
 
-## Install the OS
+# Install the OS
 > [https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/](https://wiki.almalinux.org/documentation/installation-guide.html)
 
-## Set up OS for k8s
+# Set up OS for k8s
 > [!TIP]
 > Do these steps to the "base template" if you are cloning or on <ins>EACH</ins> node.
 
@@ -392,9 +389,10 @@ https://kubernetes.io/docs/reference/kubectl/quick-reference/
 
 
 
-### Next
-====  ^^ current ^^ ====
-====  vv still needs updated vv ====
+----
+ ^^ current ^^ 
+ vv still needs updated vv 
+---- 
 
 ### Address planning ###
 To set the options you need to use the address of your server and plan the ranges you will use for Services and Pods, and how they will be allocated to Nodes.

@@ -1,4 +1,4 @@
-> Please see previous steos on the root [readme](../readme.md)
+> Please see previous steps on the root [readme](./readme.md)
 
 # Deploy the Calico Container Network Interface (CNI)
 The `kubeadm init` output instructs that you must also deploy a pod network, a Container Network Interface (CNI), to get things working. Base Kubernetes is tested with Calico, and supports IPv6.

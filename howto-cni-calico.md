@@ -43,7 +43,7 @@ watch kubectl get pods -n calico-system
 >  kubectl get tigerastatus -o yaml
 > ```
 
-Skip to [Install calicoctl](install-calicoctl) to continue
+Skip to [Install calicoctl](#install-calicoctl) to continue
 
 
 ### OPTION: Calico with BGP

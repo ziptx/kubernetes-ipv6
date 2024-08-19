@@ -390,8 +390,8 @@ https://kubernetes.io/docs/reference/kubectl/quick-reference/
 
 
 ----
- ^^ current ^^ 
- vv still needs updated vv 
+> ^^ current ^^  </br>
+>  vv still needs updated vv 
 ---- 
 
 ### Address planning ###

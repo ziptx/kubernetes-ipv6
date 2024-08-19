@@ -352,10 +352,10 @@ sudo kubeadm join [fdaa:bbcc:dd01:2600::230]:6443 --token te7lbk.xxxxxxxxxxxxxxx
 # Choose a CNI Adventure
 Now is the time to 'Choose your own adventure' for deploying a Container Network Interface (CNI).   There are several paths for exploring different networking.   I recommend to start with simple Calico with VXLAN for a quick start.
 
-* [Calico with VXLAN](../howto-cni-calico.md)
-* [Calico with BGP] (../howto-cni-calico.md) 
-* [Calico by sgryphon](../howto-cni-sgryphon.md)
-* [Cilium with e
+* [Calico with VXLAN](./howto-cni-calico.md)
+* [Calico with BGP](./howto-cni-calico.md) 
+* [Calico by sgryphon](./howto-cni-sgryphon.md)
+* [Cilium with ebpf]
 
 # Connectivity testing
 > [!TIP]

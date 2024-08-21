@@ -13,7 +13,7 @@ helm repo add projectcalico https://projectcalico.docs.tigera.io/charts
 kubectl create namespace tigera-operator
 helm show values projectcalico/tigera-operator
 
-cat EOF << | tee ./CalicoValues.yaml
+cat <<EOF | sudo tee ./CalicoValues.yaml
 # imagePullSecrets is a special helm field which, when specified, creates a secret
 # containing the pull secret which is used to pull all images deployed by this helm chart and the resulting operator.
 # this field is a map where the key is the desired secret name and the value is the contents of the imagePullSecret.

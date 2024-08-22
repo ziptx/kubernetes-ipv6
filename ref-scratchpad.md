@@ -27,6 +27,15 @@ imagePullSecrets: {}
 installation:
   enabled: true
   kubernetesProvider: ""
+  calicoNetwork:
+     # Note: The ipPools section cannot be modified post-install.
+    ipPools:
+      - blockSize: 122
+        cidr: fdaa:bbcc:dd01:26c::/64
+        encapsulation: VXLAN
+        natOutgoing: Enabled
+        nodeSelector: all()
+       
 
   # imagePullSecrets are configured on all images deployed by the tigera-operator.
   # secrets specified here must exist in the tigera-operator namespace; they won't be created by the operator or helm.

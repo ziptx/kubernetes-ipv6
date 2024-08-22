@@ -31,7 +31,7 @@ installation:
      # Note: The ipPools section cannot be modified post-install.
     ipPools:
       - blockSize: 122
-        cidr: fdaa:bbcc:dd01:26c::/64
+        cidr: fdaa:bbcc:dd01:260c::/64
         encapsulation: VXLAN
         natOutgoing: Enabled
         nodeSelector: all()

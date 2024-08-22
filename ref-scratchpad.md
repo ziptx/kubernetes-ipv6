@@ -1,4 +1,4 @@
-Helm install 
+#### Helm install 
 ```bash
 sudo dnf install -y git tar
 curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
@@ -20,9 +20,22 @@ helm ls -A
 ```
 > REF: https://artifacthub.io/packages/helm/projectcalico/tigera-operator
 
+#### Calicoctl Install
+```bash
+cd /usr/local/bin
+sudo curl -L https://github.com/projectcalico/calico/releases/download/v3.28.1/calicoctl-linux-amd64 -o kubectl-calico
+sudo chmod +x kubectl-calico
+cat <<EOF | sudo tee /usr/local/bin/calicoctl
+/usr/local/bin/kubectl-calico "\$@"
+EOF
+sudo chmod +x calicoctl
+cd
+```
+
+
 #### Calico Helm Values - VXLAN
 ```
-cat <<EOF | tee calicoValues.yaml
+cat <<EOF | tee calico-helm-vxlan.yaml
 # imagePullSecrets is a special helm field which, when specified, creates a secret
 # containing the pull secret which is used to pull all images deployed by this helm chart and the resulting operator.
 # this field is a map where the key is the desired secret name and the value is the contents of the imagePullSecret.

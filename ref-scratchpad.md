@@ -7,12 +7,21 @@ chmod 700 get_helm.sh
 ```
 
 
-Calico Helm install
+#### Calico Helm install
 ```bash
 helm repo add projectcalico https://projectcalico.docs.tigera.io/charts
 kubectl create namespace tigera-operator
 helm show values projectcalico/tigera-operator
+curl -O https://raw.githubusercontent.com/ziptx/kubernetes-ipv6/main/calico-helm-bgp.yaml
+helm install -f calico-helm-bgp.yaml calico projectcalico/tigera-operator --namespace tigera-operator
 
+helm status calico --namespace tigera-operator
+helm ls -A
+```
+> REF: https://artifacthub.io/packages/helm/projectcalico/tigera-operator
+
+#### Calico Helm Values - VXLAN
+```
 cat <<EOF | tee calicoValues.yaml
 # imagePullSecrets is a special helm field which, when specified, creates a secret
 # containing the pull secret which is used to pull all images deployed by this helm chart and the resulting operator.
@@ -105,10 +114,5 @@ kubernetesServiceEndpoint:
   port: "6443"
 
 EOF
-
-helm install -f calicoValues.yaml calico projectcalico/tigera-operator --namespace tigera-operator
-
-helm status calico --namespace tigera-operator
-helm ls -A
 ```
-> REF: https://artifacthub.io/packages/helm/projectcalico/tigera-operator
+

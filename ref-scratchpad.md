@@ -17,6 +17,7 @@ helm install -f calico-helm-bgp.yaml calico projectcalico/tigera-operator --name
 
 helm status calico --namespace tigera-operator
 helm ls -A
+watch kubectl get pods -n calico-system
 ```
 > REF: https://artifacthub.io/packages/helm/projectcalico/tigera-operator
 

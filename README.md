@@ -9,7 +9,7 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 > [!TIP]
 > - The setup below uses a random IPv6 ULA (private) address space.   The 2001:db8 'documention' addresses are not used, so that this working enviroment can be mimicked.  This tutorial is derived from the awesome guide by [sgryphon](https://github.com/sgryphon/kubernetes-ipv6) which has aged with the many evolving changes in Kubernetes AND Calico code bases.
 >        
-> - This setup assumes you have native IPv6 access to the internet.   Each node will need a secondary GUA IP address / an additional NIC with an IPv6 address and DNS from your carrier / or a NAT66 translation to a GUA address.  If not, you will need to have DNS64 + NAT64 available to your IPv6 only server, as the installation uses several resources (Docker registry, Github).
+> - The Calico installation (CNI Provider) uses Github which is IPv4 only. If you are not using Calico, Kubernetes installs correctly using IPv6 and the IPv6 internet.   Each node will need a secondary GUA IP address /or/ an additional NIC with an GUA IPv6 address from your carrier /or/ a NAT66 translation to a GUA address.  For the Calico install, you will need to have DNS64 + NAT64 available to your IPv6 only server /or/ an IPv4 address on the CONTROL node.   
 
 
 ## Environment Review - On-premise config

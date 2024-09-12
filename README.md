@@ -47,7 +47,7 @@ IPv6 only infrastructure deployments allow for simpler management and maintenanc
 > :koala: Specific Action that must be done to each VM individually
 
 # Install the OS
-> [https://www.linuxtechi.com/install-kubernetes-on-rockylinux-almalinux/](https://wiki.almalinux.org/documentation/installation-guide.html)
+> [https://wiki.almalinux.org/documentation/installation-guide.html](https://wiki.almalinux.org/documentation/installation-guide.html)
 
 # Set up OS for k8s
 > [!TIP]
